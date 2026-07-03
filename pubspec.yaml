@@ -1,0 +1,58 @@
+name: inventory_mobile
+description: "Tirta Warehouse Management System - Mobile Application for PDAM Tirta Pakuan"
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Koneksi HTTP tangguh
+  dio: ^5.4.0
+
+  # State management reaktif
+  provider: ^6.1.1
+
+  # Penyimpanan token JWT terenkripsi aman
+  flutter_secure_storage: ^9.0.0
+
+  # Tipografi modern premium
+  google_fonts: ^6.1.0
+
+  # Format tanggal, angka, dan mata uang
+  intl: ^0.19.0
+
+  # Loading spinner transparan & premium
+  flutter_spinkit: ^5.2.0
+
+  # Pemindai barcode/QR Code (Hanya diaktifkan untuk Peran Gudang)
+  mobile_scanner: ^4.0.1
+  # Generate QR Code
+  qr_flutter: ^4.1.0
+
+  # Ikon bawaan tambahan
+  cupertino_icons: ^1.0.6
+
+  # Env variable support
+  flutter_dotenv: ^5.1.0
+
+  # Image picker for uploads
+  image_picker: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - public/logo-pdam.png
+    - public/logo-premium.png
+    - .env
