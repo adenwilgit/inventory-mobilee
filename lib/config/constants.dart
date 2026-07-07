@@ -6,6 +6,7 @@ class AppConstants {
       dotenv.env['API_URL'] ?? 'http://localhost:5000/api';
   static String get uploadUrl =>
       dotenv.env['UPLOAD_URL'] ?? 'http://localhost:5000/uploads';
+  static String? get socketUrl => dotenv.env['SOCKET_URL'];
 
   // Timeout koneksi
   static const int connectTimeoutMs = 30000;

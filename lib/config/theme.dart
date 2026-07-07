@@ -130,7 +130,7 @@ class TirtaTheme {
       primaryColor: primaryBlue,
       scaffoldBackgroundColor: lightBg,
       cardColor: lightCard,
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: primaryBlue,
         secondary: skyBlue,
         tertiary: cyan,

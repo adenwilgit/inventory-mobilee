@@ -57,10 +57,19 @@ void main() async {
         ChangeNotifierProxyProvider<AuthProvider, NotifikasiProvider>(
           create: (_) => NotifikasiProvider(),
           update: (_, auth, notifProv) {
+            final notif = notifProv ?? NotifikasiProvider();
+            
             if (auth.isAuthenticated && auth.user != null) {
-              notifProv?.fetchNotifikasi(auth.user!.id);
+              // Init socket jika belum terhubung
+              notif.initSocket(auth.user!.id);
+              // Fetch notifikasi
+              notif.fetchNotifikasi(auth.user!.id);
+            } else {
+              // Disconnect socket jika logout
+              notif.disconnectSocket();
             }
-            return notifProv ?? NotifikasiProvider();
+            
+            return notif;
           },
         ),
       ],

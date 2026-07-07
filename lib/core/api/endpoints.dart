@@ -1,4 +1,22 @@
+import '../../config/constants.dart';
+
 class Endpoints {
+  static String get baseUrl => AppConstants.baseUrl;
+
+  // Gunakan SOCKET_URL dari .env jika ada, jika tidak, hitung dari baseUrl
+  static String get socketUrl {
+    final envSocketUrl = AppConstants.socketUrl;
+    if (envSocketUrl != null && envSocketUrl.isNotEmpty) {
+      return envSocketUrl;
+    }
+
+    final url = baseUrl;
+    if (url.endsWith('/api')) {
+      return url.substring(0, url.length - 4);
+    }
+    return url;
+  }
+
   // Autentikasi
   static const String login = '/auth/login';
   static const String checkNup = '/auth/check-nup';

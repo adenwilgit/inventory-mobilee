@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../core/api/api_client.dart';
 import '../../core/api/endpoints.dart';
 import '../../data/models/notifikasi_model.dart';
@@ -8,11 +9,55 @@ class NotifikasiProvider extends ChangeNotifier {
   List<Notifikasi> _notifikasiList = [];
   bool _isLoading = true;
   String? _errorMessage;
+  IO.Socket? _socket;
 
   List<Notifikasi> get notifikasiList => _notifikasiList;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   int get unreadCount => _notifikasiList.where((n) => n.isRead == 0).length;
+
+  void initSocket(int userId) {
+    if (_socket != null && _socket!.connected) return;
+
+    _socket = IO.io(Endpoints.socketUrl, <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': false,
+    });
+
+    _socket!.connect();
+
+    _socket!.onConnect((_) {
+      debugPrint('✅ [MOBILE] Socket connected');
+      _socket!.emit('register', userId);
+    });
+
+    // Listen notifikasi baru
+    _socket!.on('notif_baru', (data) {
+      debugPrint('🔔 [MOBILE] Menerima notifikasi baru: $data');
+      // Fetch notifikasi ulang agar data persis dengan server
+      fetchNotifikasi(userId);
+    });
+
+    // Listen refresh data
+    _socket!.on('refresh_data', (_) {
+      debugPrint('🔄 [MOBILE] Menerima sinyal refresh data');
+      fetchNotifikasi(userId);
+    });
+
+    _socket!.onDisconnect((_) {
+      debugPrint('❌ [MOBILE] Socket disconnected');
+    });
+  }
+
+  // Method untuk disconnect socket
+  void disconnectSocket() {
+    if (_socket != null) {
+      _socket!.disconnect();
+      _socket!.dispose();
+      _socket = null;
+      debugPrint('🔌 [MOBILE] Socket disconnected and disposed');
+    }
+  }
 
   Future<void> fetchNotifikasi(int userId) async {
     _isLoading = true;

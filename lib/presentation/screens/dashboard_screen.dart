@@ -10,6 +10,7 @@ import '../providers/pengajuan_provider.dart';
 import '../providers/stok_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/loading_indicator.dart';
+
 import 'profile_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -929,13 +930,11 @@ class _RecentList extends StatelessWidget {
   final String title;
   final List items;
   final ThemeData theme;
-  final bool showTimeline;
 
   const _RecentList({
     required this.title,
     required this.items,
     required this.theme,
-    this.showTimeline = false,
   });
 
   @override
@@ -974,8 +973,7 @@ class _RecentList extends StatelessWidget {
           )
         else
           ...items.map((item) {
-            return _ListItemCard(
-                item: item, theme: theme, showTimeline: showTimeline);
+            return _ListItemCard(item: item, theme: theme);
           }),
       ],
     );
@@ -985,12 +983,10 @@ class _RecentList extends StatelessWidget {
 class _ListItemCard extends StatelessWidget {
   final dynamic item;
   final ThemeData theme;
-  final bool showTimeline;
 
   const _ListItemCard({
     required this.item,
     required this.theme,
-    this.showTimeline = false,
   });
 
   @override
@@ -1137,13 +1133,6 @@ class _ListItemCard extends StatelessWidget {
               ),
             ],
           ),
-          if (showTimeline) ...[
-            const SizedBox(height: 12),
-            _ApprovalTimeline(
-              status: item.status as String? ?? '',
-              rolePengaju: item.rolePengaju as String?,
-            ),
-          ],
         ],
       ),
     );
@@ -1270,241 +1259,6 @@ class _ItemPhotosStack extends StatelessWidget {
       color: theme.colorScheme.surfaceContainerHighest,
       child: Icon(Icons.inventory_2_outlined,
           size: w * 0.4, color: Colors.grey.shade400),
-    );
-  }
-}
-
-// ─── Approval Timeline ──────────────────────────────────────────────────────
-class _ApprovalTimeline extends StatelessWidget {
-  final String status;
-  final String? rolePengaju;
-
-  const _ApprovalTimeline({required this.status, this.rolePengaju});
-
-  List<String> _buildSteps() {
-    final role = (rolePengaju ?? '').toLowerCase();
-    if (role.contains('manager') && !role.contains('asisten')) {
-      return ['Pengajuan', 'Gudang'];
-    } else if (role.contains('asisten')) {
-      return ['Pengajuan', 'Manager', 'Gudang'];
-    }
-    return ['Pengajuan', 'Asisten Manager', 'Manager', 'Gudang'];
-  }
-
-  int _activeStep(List<String> steps) {
-    final s = status.toLowerCase();
-    final isRejected = s.contains('reject');
-
-    final gudangIdx = steps.length - 1;
-
-    if (s.contains('completed') || s == 'approved_gudang') {
-      return steps.length;
-    }
-
-    if (s.contains('pending_gudang')) {
-      return gudangIdx;
-    }
-
-    if (s.contains('pending_manager')) {
-      final idx = steps.indexWhere((e) =>
-          e.toLowerCase().contains('manager') &&
-          !e.toLowerCase().contains('asisten'));
-      return idx >= 0 ? idx : gudangIdx - 1;
-    }
-
-    if (s.contains('pending_asisten')) {
-      final idx = steps.indexWhere((e) => e.toLowerCase().contains('asisten'));
-      return idx >= 0 ? idx : 1;
-    }
-
-    if (isRejected) {
-      return gudangIdx;
-    }
-
-    return 1;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final steps = _buildSteps();
-    final isRejected = status.toLowerCase().contains('reject');
-    final activeStep = _activeStep(steps);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? TirtaTheme.slate800 : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-            color: isRejected
-                ? TirtaTheme.rose.withValues(alpha: 0.5)
-                : (isDark
-                    ? TirtaTheme.slate700
-                    : TirtaTheme.slate200.withValues(alpha: 0.5))),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.map_rounded,
-                  size: 16, color: isDark ? Colors.grey : Colors.blueGrey),
-              const SizedBox(width: 8),
-              Text('Peta Persetujuan Digital',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurface)),
-              const Spacer(),
-              if (isRejected)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: TirtaTheme.rose.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text('DITOLAK',
-                      style: TextStyle(
-                          color: TirtaTheme.rose,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 9,
-                          letterSpacing: 0.3)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Column(
-            children: List.generate(steps.length, (index) {
-              final isComplete = index < activeStep;
-              final isActive = !isRejected &&
-                  index == activeStep &&
-                  activeStep < steps.length;
-              final isRejectedStep = isRejected && index == activeStep;
-              final isLastStep = index == steps.length - 1;
-
-              Color dotColor;
-              Color textColor;
-              Widget dotChild;
-
-              if (isRejectedStep) {
-                dotColor = TirtaTheme.rose;
-                textColor = TirtaTheme.rose;
-                dotChild = const Icon(Icons.close_rounded,
-                    size: 10, color: Colors.white);
-              } else if (isComplete) {
-                dotColor = TirtaTheme.green;
-                textColor = TirtaTheme.green;
-                dotChild = const Icon(Icons.check_rounded,
-                    size: 10, color: Colors.white);
-              } else if (isActive) {
-                dotColor =
-                    isLastStep ? TirtaTheme.primaryBlue : TirtaTheme.orange;
-                textColor =
-                    isLastStep ? TirtaTheme.primaryBlue : TirtaTheme.orange;
-                dotChild = TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 1.0, end: 0.3),
-                  duration: const Duration(milliseconds: 700),
-                  builder: (context, value, child) => Opacity(
-                    opacity: value,
-                    child: child,
-                  ),
-                  child:
-                      const Icon(Icons.circle, size: 10, color: Colors.white),
-                );
-              } else {
-                dotColor = isDark ? TirtaTheme.slate700 : Colors.grey.shade300;
-                textColor =
-                    isDark ? Colors.grey.shade500 : Colors.grey.shade600;
-                dotChild =
-                    const Icon(Icons.circle, size: 10, color: Colors.white);
-              }
-
-              String statusLabel;
-              Color statusLabelColor;
-
-              if (isRejectedStep) {
-                statusLabel = 'Ditolak';
-                statusLabelColor = TirtaTheme.rose;
-              } else if (isComplete) {
-                statusLabel = 'Selesai';
-                statusLabelColor = TirtaTheme.green;
-              } else if (isActive) {
-                statusLabel =
-                    isLastStep ? 'Menunggu Gudang' : 'Sedang diproses';
-                statusLabelColor =
-                    isLastStep ? TirtaTheme.primaryBlue : TirtaTheme.orange;
-              } else {
-                statusLabel = 'Menunggu';
-                statusLabelColor =
-                    isDark ? Colors.grey.shade600 : Colors.grey.shade500;
-              }
-
-              return Padding(
-                padding: EdgeInsets.only(bottom: isLastStep ? 0 : 14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      children: [
-                        Container(
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: dotColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(child: dotChild),
-                        ),
-                        if (!isLastStep)
-                          Container(
-                            width: 2,
-                            height: 40,
-                            margin: const EdgeInsets.only(top: 4),
-                            color: isDark
-                                ? TirtaTheme.slate700
-                                : Colors.grey.shade300,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(steps[index],
-                              style: TextStyle(
-                                  fontWeight:
-                                      isComplete || isActive || isRejectedStep
-                                          ? FontWeight.w800
-                                          : FontWeight.w600,
-                                  fontSize: 13,
-                                  color:
-                                      isComplete || isActive || isRejectedStep
-                                          ? textColor
-                                          : (isDark
-                                              ? Colors.grey.shade400
-                                              : Colors.grey.shade700))),
-                          const SizedBox(height: 4),
-                          Text(
-                            statusLabel,
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: statusLabelColor,
-                                fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
     );
   }
 }
