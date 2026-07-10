@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'config/theme.dart';
+import 'main.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/screens/login_screen.dart';
@@ -24,6 +25,7 @@ class TirtaApp extends StatelessWidget {
     return MaterialApp(
       title: 'Tirta Pakuan',
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
       theme: TirtaTheme.lightTheme,
       darkTheme: TirtaTheme.darkTheme,
       themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,

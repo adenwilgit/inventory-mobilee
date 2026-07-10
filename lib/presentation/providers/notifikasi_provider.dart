@@ -1,15 +1,20 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../core/api/api_client.dart';
 import '../../core/api/endpoints.dart';
 import '../../data/models/notifikasi_model.dart';
+import '../widgets/custom_snackbar.dart';
 
 class NotifikasiProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
+  final GlobalKey<NavigatorState> navigatorKey;
   List<Notifikasi> _notifikasiList = [];
   bool _isLoading = true;
   String? _errorMessage;
   IO.Socket? _socket;
+
+  NotifikasiProvider({required this.navigatorKey});
 
   List<Notifikasi> get notifikasiList => _notifikasiList;
   bool get isLoading => _isLoading;
@@ -34,6 +39,17 @@ class NotifikasiProvider extends ChangeNotifier {
     // Listen notifikasi baru
     _socket!.on('notif_baru', (data) {
       debugPrint('🔔 [MOBILE] Menerima notifikasi baru: $data');
+
+      // Tampilkan toast notifikasi
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        CustomSnackBar.show(
+          context: null,
+          message: data['pesan'] ?? 'Notifikasi baru',
+          type: SnackBarType.info,
+          style: NotificationStyle.toast,
+        );
+      });
+
       // Fetch notifikasi ulang agar data persis dengan server
       fetchNotifikasi(userId);
     });

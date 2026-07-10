@@ -76,93 +76,103 @@ class _ApprovalGudangScreenState extends State<ApprovalGudangScreen>
       context: context,
       builder: (context) {
         final theme = Theme.of(context);
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.cancel_outlined,
-                          color: Colors.red, size: 22),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.cancel_outlined,
+                              color: Colors.red, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Tolak Pengajuan',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 17),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Tolak Pengajuan',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 17),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Masukkan alasan penolakan untuk pengajuan ini.',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: alasanController,
+                      maxLines: 3,
+                      onChanged: (value) {
+                        setDialogState(() {}); // Trigger rebuild
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Tulis alasan penolakan...',
+                        filled: true,
+                        fillColor: theme.brightness == Brightness.dark
+                            ? TirtaTheme.slate800
+                            : Colors.grey.shade50,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                              side: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            child: const Text('Batal'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: alasanController.text.trim().isEmpty
+                                ? null
+                                : () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                              elevation: 0,
+                              disabledBackgroundColor: Colors.red.shade200,
+                            ),
+                            child: const Text('Tolak',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Masukkan alasan penolakan untuk pengajuan ini.',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: alasanController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'Tulis alasan penolakan...',
-                    filled: true,
-                    fillColor: theme.brightness == Brightness.dark
-                        ? TirtaTheme.slate800
-                        : Colors.grey.shade50,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                          side: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        child: const Text('Batal'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
-                        ),
-                        child: const Text('Tolak',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

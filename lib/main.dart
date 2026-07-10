@@ -12,6 +12,9 @@ import 'presentation/providers/stok_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'core/utils/storage_helper.dart';
 
+// GlobalKey untuk Navigator
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   // Pastikan binding Flutter terinisialisasi
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,9 +58,9 @@ void main() async {
           update: (_, auth, stok) => (stok ?? StokProvider())..updateAuth(auth),
         ),
         ChangeNotifierProxyProvider<AuthProvider, NotifikasiProvider>(
-          create: (_) => NotifikasiProvider(),
+          create: (_) => NotifikasiProvider(navigatorKey: navigatorKey),
           update: (_, auth, notifProv) {
-            final notif = notifProv ?? NotifikasiProvider();
+            final notif = notifProv ?? NotifikasiProvider(navigatorKey: navigatorKey);
             
             if (auth.isAuthenticated && auth.user != null) {
               // Init socket jika belum terhubung

@@ -55,7 +55,7 @@ class DashboardScreen extends StatelessWidget {
                 theme: theme,
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -331,6 +331,16 @@ class _StaffDashboard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 12),
+            Text(
+              'Statistik Pengajuan Saya',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+
             _StatsGrid(
               stats: [
                 _StatItem(
@@ -488,6 +498,7 @@ class _AsistenManagerDashboard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 12),
             Text(
               'Statistik Pengajuan',
               style: TextStyle(
@@ -496,7 +507,7 @@ class _AsistenManagerDashboard extends StatelessWidget {
                 color: theme.colorScheme.onSurface,
               ),
             ),
-            const SizedBox(height: 1),
+
             _StatsGrid(
               stats: [
                 _StatItem(
@@ -524,7 +535,7 @@ class _AsistenManagerDashboard extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(212),
                 boxShadow: [
                   BoxShadow(
                     color: TirtaTheme.primaryBlue.withValues(alpha: 0.25),
@@ -641,6 +652,15 @@ class _ManagerDashboard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 12),
+            Text(
+              'Statistik Pengajuan',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
             _StatsGrid(
               stats: [
                 _StatItem(
@@ -716,6 +736,15 @@ class _GudangDashboard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 12),
+            Text(
+              'Statistik Stok & Gudang',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
             _StatsGrid(
               stats: [
                 _StatItem(
