@@ -78,6 +78,7 @@ class DashboardSummary {
 class DashboardLowStock {
   final int id;
   final String namaBarang;
+  final String? foto;
   final int stok;
   final int stokMinimum;
   final String? rak;
@@ -85,6 +86,7 @@ class DashboardLowStock {
   DashboardLowStock({
     required this.id,
     required this.namaBarang,
+    this.foto,
     required this.stok,
     required this.stokMinimum,
     this.rak,
@@ -94,6 +96,7 @@ class DashboardLowStock {
     return DashboardLowStock(
       id: _toInt(json['id']),
       namaBarang: json['nama_barang'] as String? ?? '',
+      foto: json['foto'] as String?,
       stok: _toInt(json['stok']),
       stokMinimum: _toInt(json['stok_minimum']),
       rak: json['rak'] as String?,

@@ -1619,6 +1619,9 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
         ? myList.where((p) => _isDiproses(p.status)).toList()
         : myList.where((p) => !_isDiproses(p.status)).toList();
 
+    // Sort descending by id (newest first)
+    filtered.sort((a, b) => b.id.compareTo(a.id));
+
     if (filtered.isEmpty) {
       return Center(
         child: Column(

@@ -45,14 +45,20 @@ class StokProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint('📡 Fetching kategori from ${Endpoints.kategori}...');
       final response = await _apiClient.get(Endpoints.kategori);
+      debugPrint('📡 Kategori response status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final list = response.data as List<dynamic>;
+        debugPrint('📡 Kategori data received: $list');
         _kategoriList = list
             .map((json) => KategoriModel.fromJson(json as Map<String, dynamic>))
             .toList();
+        debugPrint('📡 Kategori list length: ${_kategoriList.length}');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('❌ Error fetching kategori: $e');
+      debugPrint('❌ Stack trace: $stack');
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
     } finally {
       notifyListeners();
@@ -66,14 +72,20 @@ class StokProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint('📡 Fetching satuan from ${Endpoints.satuan}...');
       final response = await _apiClient.get(Endpoints.satuan);
+      debugPrint('📡 Satuan response status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final list = response.data as List<dynamic>;
+        debugPrint('📡 Satuan data received: $list');
         _satuanList = list
             .map((json) => SatuanModel.fromJson(json as Map<String, dynamic>))
             .toList();
+        debugPrint('📡 Satuan list length: ${_satuanList.length}');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('❌ Error fetching satuan: $e');
+      debugPrint('❌ Stack trace: $stack');
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
     } finally {
       notifyListeners();

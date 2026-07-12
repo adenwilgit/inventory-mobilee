@@ -319,7 +319,8 @@ class _StaffDashboard extends StatelessWidget {
           );
         }
 
-        final myPengajuan = pengajuanProvider.pengajuans;
+        final myPengajuan = pengajuanProvider.pengajuans.toList()
+          ..sort((a, b) => b.id.compareTo(a.id));
         final total = myPengajuan.length;
         final pending =
             myPengajuan.where((p) => p.status.startsWith('pending')).length;
@@ -487,7 +488,8 @@ class _AsistenManagerDashboard extends StatelessWidget {
           );
         }
 
-        final allPengajuan = pengajuanProvider.pengajuans;
+        final allPengajuan = pengajuanProvider.pengajuans.toList()
+          ..sort((a, b) => b.id.compareTo(a.id));
         final pendingAsmen = allPengajuan
             .where((p) => p.status == 'pending_asisten_manager')
             .length;
@@ -643,7 +645,8 @@ class _ManagerDashboard extends StatelessWidget {
           );
         }
 
-        final allPengajuan = pengajuanProvider.pengajuans;
+        final allPengajuan = pengajuanProvider.pengajuans.toList()
+          ..sort((a, b) => b.id.compareTo(a.id));
         final pendingManager =
             allPengajuan.where((p) => p.status == 'pending_manager').length;
         final completed =
@@ -802,7 +805,12 @@ class _GudangDashboard extends StatelessWidget {
                 height: width < 380 ? 6 : 10,
               ),
               ...data.stokRendah.take(3).map((item) {
-                return _WarningCard(item: item, theme: theme);
+                // Cross-reference with barangList to get the product photo
+                final barang = stokProvider.barangList
+                    .where((b) => b.id == item.id)
+                    .toList();
+                final foto = barang.isNotEmpty ? barang.first.foto : null;
+                return _WarningCard(item: item, foto: foto, theme: theme);
               }),
             ],
             SizedBox(
@@ -1294,26 +1302,31 @@ class _ItemPhotosStack extends StatelessWidget {
 
 class _WarningCard extends StatelessWidget {
   final dynamic item;
+  final String? foto;
   final ThemeData theme;
 
-  const _WarningCard({required this.item, required this.theme});
+  const _WarningCard({required this.item, this.foto, required this.theme});
 
   @override
   Widget build(BuildContext context) {
     final cardTheme = Theme.of(context);
     final isDark = cardTheme.brightness == Brightness.dark;
+    final hasPhoto = foto != null && foto!.isNotEmpty;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: cardTheme.cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.red.withValues(alpha: isDark ? 0.3 : 0.2),
+          color: isDark
+              ? TirtaTheme.slate800
+              : TirtaTheme.slate200.withValues(alpha: 0.5),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.red.withValues(alpha: 0.01),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1321,18 +1334,58 @@ class _WarningCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.error_rounded,
-              color: Colors.redAccent,
-              size: 20,
-            ),
+          // Product image or fallback icon
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: hasPhoto
+                ? Image.network(
+                    '${AppConstants.uploadUrl}/$foto',
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.inventory_2_outlined,
+                        color: Colors.grey.shade400,
+                        size: 20,
+                      ),
+                    ),
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return Container(
+                        width: 44,
+                        height: 44,
+                        color:
+                            isDark ? TirtaTheme.slate800 : Colors.grey.shade100,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.inventory_2_outlined,
+                      color: Colors.grey.shade400,
+                      size: 20,
+                    ),
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1342,7 +1395,7 @@ class _WarningCard extends StatelessWidget {
                 Text(
                   item.namaBarang,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: cardTheme.colorScheme.onSurface,
                   ),
@@ -1354,20 +1407,22 @@ class _WarningCard extends StatelessWidget {
                     fontSize: 11,
                     color: Colors.grey.shade600,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: Colors.red.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               '${item.stok}',
               style: const TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: Colors.redAccent,
               ),

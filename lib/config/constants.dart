@@ -3,9 +3,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppConstants {
   // URL Server Backend (from .env file)
   static String get baseUrl =>
-      dotenv.env['API_URL'] ?? 'http://localhost:5000/api';
+      dotenv.env['API_URL'] ??
+      'https://inventory-backend-production-b052.up.railway.app/api';
   static String get uploadUrl =>
-      dotenv.env['UPLOAD_URL'] ?? 'http://localhost:5000/uploads';
+      dotenv.env['UPLOAD_URL'] ??
+      'https://inventory-backend-production-b052.up.railway.app/uploads';
   static String? get socketUrl => dotenv.env['SOCKET_URL'];
 
   // Timeout koneksi

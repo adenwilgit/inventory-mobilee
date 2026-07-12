@@ -79,8 +79,8 @@ class _ApprovalGudangScreenState extends State<ApprovalGudangScreen>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24)),
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -111,7 +111,8 @@ class _ApprovalGudangScreenState extends State<ApprovalGudangScreen>
                     const SizedBox(height: 16),
                     Text(
                       'Masukkan alasan penolakan untuk pengajuan ini.',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 13),
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -314,6 +315,10 @@ class _ApprovalGudangScreenState extends State<ApprovalGudangScreen>
         return matchesNo || matchesCatatan || matchesNama || matchesItems;
       }).toList();
     }
+
+    // Urutkan berdasarkan ID descending (terbaru di atas)
+    pendingPengajuan.sort((a, b) => b.id.compareTo(a.id));
+    historyPengajuan.sort((a, b) => b.id.compareTo(a.id));
 
     // Tab labels
     final tab1Label = role == 'staff' ? 'DIPROSES' : 'MENUNGGU';

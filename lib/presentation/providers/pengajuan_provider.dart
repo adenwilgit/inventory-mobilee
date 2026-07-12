@@ -161,9 +161,9 @@ class PengajuanProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        fetchPengajuans(); // Refresh daftar utama
+        await fetchPengajuans(); // Refresh daftar utama
         if (_selectedPengajuan?.id == pengajuanId) {
-          fetchPengajuanById(pengajuanId); // Refresh detail aktif
+          await fetchPengajuanById(pengajuanId); // Refresh detail aktif
         }
         return true;
       }
@@ -198,9 +198,9 @@ class PengajuanProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        fetchPengajuans();
+        await fetchPengajuans();
         if (_selectedPengajuan?.id == pengajuanId) {
-          fetchPengajuanById(pengajuanId);
+          await fetchPengajuanById(pengajuanId);
         }
         return true;
       }

@@ -136,12 +136,14 @@ class AuthProvider extends ChangeNotifier {
         final role = (data['role'] as String?)?.toLowerCase() ?? '';
         final nama = (data['nama'] as String?)?.toLowerCase() ?? '';
 
-        // Blokir Super Admin - cek dari NAMA atau ROLE field
-        if (nama.contains('super') || role.contains('super')) {
+        // Blokir Super Admin & Admin - cek dari NAMA atau ROLE field
+        if (nama.contains('super') ||
+            role.contains('super') ||
+            role.contains('admin')) {
           _previewNama = null;
           _previewRole = null;
           _previewError =
-              '⚠️ Super Admin tidak dapat mengakses aplikasi mobile. Silakan gunakan website admin untuk akses penuh.';
+              '${data['role']} tidak dapat mengakses aplikasi mobile. Silakan gunakan website admin untuk akses penuh.';
         } else {
           _previewNama = data['nama'] as String?;
           _previewRole = data['role'] as String?;

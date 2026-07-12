@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../core/api/api_client.dart';
 import '../../core/api/endpoints.dart';
+import 'package:provider/provider.dart';
 import '../../data/models/notifikasi_model.dart';
 import '../widgets/custom_snackbar.dart';
+import 'pengajuan_provider.dart';
+import 'dashboard_provider.dart';
+import 'stok_provider.dart';
 
 class NotifikasiProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
@@ -48,6 +52,18 @@ class NotifikasiProvider extends ChangeNotifier {
           type: SnackBarType.info,
           style: NotificationStyle.toast,
         );
+
+        // Refresh providers to make the app fully real-time
+        final context = navigatorKey.currentContext;
+        if (context != null) {
+          try {
+            Provider.of<PengajuanProvider>(context, listen: false).fetchPengajuans();
+            Provider.of<DashboardProvider>(context, listen: false).fetchDashboard();
+            Provider.of<StokProvider>(context, listen: false).fetchBarangList();
+          } catch (e) {
+            debugPrint('Error auto-refreshing providers: $e');
+          }
+        }
       });
 
       // Fetch notifikasi ulang agar data persis dengan server
@@ -58,6 +74,18 @@ class NotifikasiProvider extends ChangeNotifier {
     _socket!.on('refresh_data', (_) {
       debugPrint('🔄 [MOBILE] Menerima sinyal refresh data');
       fetchNotifikasi(userId);
+
+      // Also refresh other data
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        try {
+          Provider.of<PengajuanProvider>(context, listen: false).fetchPengajuans();
+          Provider.of<DashboardProvider>(context, listen: false).fetchDashboard();
+          Provider.of<StokProvider>(context, listen: false).fetchBarangList();
+        } catch (e) {
+          debugPrint('Error auto-refreshing providers: $e');
+        }
+      }
     });
 
     _socket!.onDisconnect((_) {
