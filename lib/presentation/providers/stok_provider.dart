@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/endpoints.dart';
 import '../../data/models/barang_model.dart';
@@ -239,7 +240,7 @@ class StokProvider extends ChangeNotifier {
     }
   }
 
-  // Menambahkan barang baru
+  // Menambahkan barang baru (multipart agar gambar terkirim)
   Future<bool> createBarang({
     required String namaBarang,
     String? kodeBarang,
@@ -248,6 +249,7 @@ class StokProvider extends ChangeNotifier {
     required String satuan,
     required int kategoriId,
     String? lokasiRak,
+    String? imagePath,
   }) async {
     if (_authProvider == null || _authProvider!.user == null) return false;
 
@@ -256,18 +258,105 @@ class StokProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _apiClient.post(
+      final formData = FormData.fromMap({
+        'nama_barang': namaBarang,
+        'kode_barang': kodeBarang,
+        'stok': stok,
+        'stok_minimum': stokMinimum,
+        'satuan': satuan,
+        'kategori_id': kategoriId,
+        'lokasi_rak': lokasiRak,
+      });
+
+      if (imagePath != null && imagePath.isNotEmpty) {
+        formData.files.add(MapEntry(
+          'foto',
+          await MultipartFile.fromFile(imagePath, filename: 'foto.jpg'),
+        ));
+      }
+
+      final response = await _apiClient.postMultipart(
         Endpoints.barang,
-        data: {
-          'nama_barang': namaBarang,
-          'kode_barang': kodeBarang,
-          'stok': stok,
-          'stok_minimum': stokMinimum,
-          'satuan': satuan,
-          'kategori_id': kategoriId,
-          'lokasi_rak': lokasiRak,
-        },
+        data: formData,
       );
+
+      if (response.statusCode == 200) {
+        await fetchBarangList();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Update barang (multipart agar gambar bisa diubah)
+  Future<bool> updateBarang({
+    required int id,
+    required String namaBarang,
+    required int stok,
+    required int stokMinimum,
+    required String satuan,
+    required int kategoriId,
+    String? lokasiRak,
+    String? imagePath,
+  }) async {
+    if (_authProvider == null || _authProvider!.user == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final formData = FormData.fromMap({
+        'nama_barang': namaBarang,
+        'stok': stok,
+        'stok_minimum': stokMinimum,
+        'satuan': satuan,
+        'kategori_id': kategoriId,
+        'lokasi_rak': lokasiRak ?? '',
+      });
+
+      if (imagePath != null && imagePath.isNotEmpty) {
+        formData.files.add(MapEntry(
+          'foto',
+          await MultipartFile.fromFile(imagePath, filename: 'foto.jpg'),
+        ));
+      }
+
+      final response = await _apiClient.putMultipart(
+        '${Endpoints.barang}/$id',
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        await fetchBarangList();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Hapus (nonaktifkan) barang
+  Future<bool> deleteBarang(int id) async {
+    if (_authProvider == null || _authProvider!.user == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.delete('${Endpoints.barang}/$id');
 
       if (response.statusCode == 200) {
         await fetchBarangList();

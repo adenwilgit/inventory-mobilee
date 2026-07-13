@@ -2,6 +2,7 @@ class BarangModel {
   final int id;
   final String kodeBarang;
   final String namaBarang;
+  final int? kategoriId;
   final String? kategori;
   final String satuan;
   final String? lokasiRak;
@@ -15,6 +16,7 @@ class BarangModel {
     required this.id,
     required this.kodeBarang,
     required this.namaBarang,
+    this.kategoriId,
     this.kategori,
     required this.satuan,
     this.lokasiRak,
@@ -30,6 +32,7 @@ class BarangModel {
       id: _toInt(json['id']),
       kodeBarang: json['kode_barang'] as String? ?? '',
       namaBarang: json['nama_barang'] as String? ?? '',
+      kategoriId: json['kategori_id'] != null ? _toInt(json['kategori_id']) : null,
       kategori: json['nama_kategori'] as String?,
       satuan: json['satuan'] as String? ?? '',
       lokasiRak: json['lokasi_rak'] as String?,
@@ -46,6 +49,7 @@ class BarangModel {
       'id': id,
       'kode_barang': kodeBarang,
       'nama_barang': namaBarang,
+      'kategori_id': kategoriId,
       'nama_kategori': kategori,
       'satuan': satuan,
       'lokasi_rak': lokasiRak,

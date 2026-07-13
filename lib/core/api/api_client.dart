@@ -81,6 +81,24 @@ class ApiClient {
     }
   }
 
+  // Wrapper POST multipart (untuk upload file)
+  Future<Response> postMultipart(String path, {required FormData data}) async {
+    try {
+      return await _dio.post(path, data: data);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Wrapper PUT multipart (untuk update + upload file)
+  Future<Response> putMultipart(String path, {required FormData data}) async {
+    try {
+      return await _dio.put(path, data: data);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // Standardisasi Format Error
   Exception _handleError(DioException error) {
     final response = error.response;

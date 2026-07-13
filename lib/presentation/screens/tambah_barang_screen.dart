@@ -91,6 +91,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       satuan: _selectedSatuan!.namaSatuan,
       kategoriId: _selectedKategori!.id,
       lokasiRak: _lokasiController.text.trim(),
+      imagePath: _selectedImage?.path,
     );
 
     if (mounted) {

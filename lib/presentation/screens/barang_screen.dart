@@ -1,7 +1,12 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:gal/gal.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../config/theme.dart';
 import '../../config/constants.dart';
 import '../providers/stok_provider.dart';
@@ -13,6 +18,8 @@ import '../widgets/loading_indicator.dart';
 import 'stok_masuk_screen.dart';
 import 'stok_keluar_screen.dart';
 import 'buat_pengajuan_screen.dart';
+import 'edit_barang_screen.dart';
+import '../widgets/custom_snackbar.dart';
 
 class BarangScreen extends StatefulWidget {
   final bool isActive;
@@ -102,7 +109,9 @@ class _BarangScreenState extends State<BarangScreen> {
               label: const Text(
                 'TAMBAH BARANG',
                 style: TextStyle(
-                    fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    letterSpacing: 0.5),
               ),
               backgroundColor: TirtaTheme.primaryBlue,
               foregroundColor: Colors.white,
@@ -754,6 +763,8 @@ class _BarangScreenState extends State<BarangScreen> {
   }
 
   void _showQRModal(BuildContext context, BarangModel barang, ThemeData theme) {
+    final GlobalKey qrKey = GlobalKey();
+
     showDialog(
       context: context,
       builder: (context) {
@@ -784,43 +795,116 @@ class _BarangScreenState extends State<BarangScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: barang.qrCode != null
-                      ? Image.memory(
-                          base64Decode(barang.qrCode!.split(',').last),
-                          width: 200,
-                          height: 200,
-                          fit: BoxFit.contain,
-                        )
-                      : QrImageView(
-                          data: '{"kode_barang":"${barang.kodeBarang}"}',
-                          version: QrVersions.auto,
-                          size: 200.0,
-                          backgroundColor: Colors.white,
+                RepaintBoundary(
+                  key: qrKey,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
                         ),
+                      ],
+                    ),
+                    child: barang.qrCode != null
+                        ? Image.memory(
+                            base64Decode(barang.qrCode!.split(',').last),
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.contain,
+                          )
+                        : QrImageView(
+                            data: '{"kode_barang":"${barang.kodeBarang}"}',
+                            version: QrVersions.auto,
+                            size: 200.0,
+                            backgroundColor: Colors.white,
+                          ),
+                  ),
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TirtaTheme.primaryBlue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      // Minta izin akses penyimpanan
+                      await Permission.storage.request();
+                      await Permission.photos.request();
+
+                      try {
+                        RenderRepaintBoundary boundary = qrKey.currentContext!
+                            .findRenderObject() as RenderRepaintBoundary;
+                        ui.Image image =
+                            await boundary.toImage(pixelRatio: 3.0);
+                        ByteData? byteData = await image.toByteData(
+                            format: ui.ImageByteFormat.png);
+                        if (byteData != null) {
+                          final Uint8List pngBytes =
+                              byteData.buffer.asUint8List();
+                          await Gal.putImageBytes(
+                            pngBytes,
+                            name: 'QR_${barang.kodeBarang}',
+                          );
+                          if (context.mounted) {
+                            CustomSnackBar.show(
+                              context: context,
+                              message: 'QR Code berhasil disimpan ke Galeri',
+                              type: SnackBarType.success,
+                              style: NotificationStyle.toast,
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          CustomSnackBar.show(
+                            context: context,
+                            message: 'Gagal menyimpan QR Code',
+                            type: SnackBarType.error,
+                            style: NotificationStyle.toast,
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.download_rounded, size: 20),
+                    label: const Text(
+                      'UNDUH QR',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          const Color(0xFF0F9D7B), // Menyerupai hijau di gambar
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shadowColor:
+                          const Color(0xFF0F9D7B).withValues(alpha: 0.4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
-                  child: const Text('Tutup'),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor:
+                        const Color(0xFF8A95A5), // Warna abu-abu kebiruan
+                  ),
+                  child: const Text(
+                    'TUTUP',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.5,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -844,6 +928,10 @@ class _BarangScreenState extends State<BarangScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
+        final authProv = Provider.of<AuthProvider>(context, listen: false);
+        final userRole = authProv.user?.role.toLowerCase() ?? '';
+        final isGudangRole = userRole == 'gudang';
+
         return Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.85,
@@ -899,14 +987,75 @@ class _BarangScreenState extends State<BarangScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      // Item Name
-                      Text(
-                        barang.namaBarang,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: theme.colorScheme.onSurface,
-                        ),
+                      // Item Name & Actions
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              barang.namaBarang,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          if (isGudangRole)
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.more_vert,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          EditBarangScreen(barang: barang),
+                                    ),
+                                  );
+                                } else if (value == 'delete') {
+                                  _showDeleteConfirmation(context, barang);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit,
+                                          size: 20,
+                                          color: TirtaTheme.primaryBlue),
+                                      SizedBox(width: 8),
+                                      Text('Edit Barang',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete,
+                                          size: 20, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Text('Hapus Barang',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.red)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       // Detail Info Grid
@@ -1083,10 +1232,6 @@ class _BarangScreenState extends State<BarangScreen> {
 
                       Builder(
                         builder: (context) {
-                          final authProv = Provider.of<AuthProvider>(context, listen: false);
-                          final userRole = authProv.user?.role.toLowerCase() ?? '';
-                          final isGudangRole = userRole == 'gudang';
-
                           if (isGudangRole) {
                             // Gudang: Stok Masuk + Stok Keluar
                             return Row(
@@ -1113,7 +1258,8 @@ class _BarangScreenState extends State<BarangScreen> {
                                         color: const Color(0xffF2FFFA),
                                         borderRadius: BorderRadius.circular(14),
                                         border: Border.all(
-                                          color: TirtaTheme.green.withValues(alpha: .35),
+                                          color: TirtaTheme.green
+                                              .withValues(alpha: .35),
                                         ),
                                       ),
                                       child: Row(
@@ -1123,7 +1269,8 @@ class _BarangScreenState extends State<BarangScreen> {
                                             height: 34,
                                             decoration: BoxDecoration(
                                               color: TirtaTheme.green,
-                                              borderRadius: BorderRadius.circular(9),
+                                              borderRadius:
+                                                  BorderRadius.circular(9),
                                             ),
                                             child: const Icon(
                                               Icons.download_rounded,
@@ -1132,29 +1279,14 @@ class _BarangScreenState extends State<BarangScreen> {
                                             ),
                                           ),
                                           const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: const [
-                                                Text(
-                                                  "STOK MASUK",
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w800,
-                                                    fontSize: 12,
-                                                    color: TirtaTheme.green,
-                                                  ),
-                                                ),
-                                                SizedBox(height: 2),
-                                                Text(
-                                                  "Tambah stok barang",
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.black54,
-                                                  ),
-                                                ),
-                                              ],
+                                          const Text(
+                                            "STOK MASUK",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 12,
+                                              color: TirtaTheme.green,
                                             ),
-                                          )
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -1183,7 +1315,8 @@ class _BarangScreenState extends State<BarangScreen> {
                                         color: const Color(0xffFFF5F5),
                                         borderRadius: BorderRadius.circular(14),
                                         border: Border.all(
-                                          color: TirtaTheme.rose.withValues(alpha: .35),
+                                          color: TirtaTheme.rose
+                                              .withValues(alpha: .35),
                                         ),
                                       ),
                                       child: Row(
@@ -1193,7 +1326,8 @@ class _BarangScreenState extends State<BarangScreen> {
                                             height: 34,
                                             decoration: BoxDecoration(
                                               color: TirtaTheme.rose,
-                                              borderRadius: BorderRadius.circular(9),
+                                              borderRadius:
+                                                  BorderRadius.circular(9),
                                             ),
                                             child: const Icon(
                                               Icons.upload_rounded,
@@ -1202,29 +1336,14 @@ class _BarangScreenState extends State<BarangScreen> {
                                             ),
                                           ),
                                           const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: const [
-                                                Text(
-                                                  "STOK KELUAR",
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w800,
-                                                    fontSize: 12,
-                                                    color: TirtaTheme.rose,
-                                                  ),
-                                                ),
-                                                SizedBox(height: 2),
-                                                Text(
-                                                  "Mutasi stok barang",
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.black54,
-                                                  ),
-                                                ),
-                                              ],
+                                          const Text(
+                                            "STOK KELUAR",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 12,
+                                              color: TirtaTheme.rose,
                                             ),
-                                          )
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -1254,10 +1373,12 @@ class _BarangScreenState extends State<BarangScreen> {
                                     vertical: 12,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: TirtaTheme.primaryBlue.withValues(alpha: 0.06),
+                                    color: TirtaTheme.primaryBlue
+                                        .withValues(alpha: 0.06),
                                     borderRadius: BorderRadius.circular(14),
                                     border: Border.all(
-                                      color: TirtaTheme.primaryBlue.withValues(alpha: .35),
+                                      color: TirtaTheme.primaryBlue
+                                          .withValues(alpha: .35),
                                     ),
                                   ),
                                   child: Row(
@@ -1267,7 +1388,8 @@ class _BarangScreenState extends State<BarangScreen> {
                                         height: 34,
                                         decoration: BoxDecoration(
                                           color: TirtaTheme.primaryBlue,
-                                          borderRadius: BorderRadius.circular(9),
+                                          borderRadius:
+                                              BorderRadius.circular(9),
                                         ),
                                         child: const Icon(
                                           Icons.note_add_rounded,
@@ -1278,7 +1400,8 @@ class _BarangScreenState extends State<BarangScreen> {
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: const [
                                             Text(
                                               "BUAT PENGAJUAN",
@@ -1341,7 +1464,7 @@ class _BarangScreenState extends State<BarangScreen> {
                               ),
                               const SizedBox(width: 10),
                               const Text(
-                                "Lihat QR Code",
+                                "Unduh QR Code",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
@@ -1383,6 +1506,69 @@ class _BarangScreenState extends State<BarangScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, BarangModel barang) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Hapus Barang',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        ),
+        content: Text(
+          'Yakin ingin menghapus "${barang.namaBarang}" dari sistem?',
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Batal',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx); // tutup dialog
+              Navigator.pop(context); // tutup bottom sheet
+
+              final stokProv =
+                  Provider.of<StokProvider>(context, listen: false);
+              final success = await stokProv.deleteBarang(barang.id);
+
+              if (mounted) {
+                if (success) {
+                  CustomSnackBar.show(
+                    context: context,
+                    message: 'Barang berhasil dihapus!',
+                    type: SnackBarType.success,
+                  );
+                } else {
+                  CustomSnackBar.show(
+                    context: context,
+                    message: stokProv.errorMessage ?? 'Gagal menghapus barang!',
+                    type: SnackBarType.error,
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1429,7 +1615,8 @@ class _CurvedGradientHeader extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: (isDark ? Colors.black : TirtaTheme.primaryBlue).withValues(alpha: 0.1),
+            color: (isDark ? Colors.black : TirtaTheme.primaryBlue)
+                .withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1441,7 +1628,6 @@ class _CurvedGradientHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-             
               Text(
                 title,
                 style: const TextStyle(
