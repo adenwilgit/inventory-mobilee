@@ -790,7 +790,7 @@ class _GudangDashboard extends StatelessWidget {
             const SizedBox(height: 0),
             _QuickActionsGrid(theme: theme),
             SizedBox(
-              height: width < 380 ? 2 : 4,
+              height: width < 380 ? 20 : 24,
             ),
             if (data.stokRendah.isNotEmpty) ...[
               Text(
