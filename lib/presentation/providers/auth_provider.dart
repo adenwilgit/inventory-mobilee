@@ -145,8 +145,26 @@ class AuthProvider extends ChangeNotifier {
           _previewError =
               '${data['role']} tidak dapat mengakses aplikasi mobile. Silakan gunakan website admin untuk akses penuh.';
         } else {
+          final rawRole = data['role'] as String? ?? '';
+          final roleKey = rawRole.toLowerCase();
+          final departemen = data['departemen'] as String? ?? '';
+          final subDepartemen = data['sub_departemen'] as String? ?? '';
+          
+          String formattedRole = rawRole;
+          if (roleKey == 'admin') {
+            formattedRole = 'ADMIN';
+          } else if (roleKey == 'gudang') {
+            formattedRole = 'PERGUDANGAN';
+          } else if (roleKey == 'manager') {
+            formattedRole = departemen.isNotEmpty ? 'MANAGER - $departemen' : 'MANAGER';
+          } else {
+            final suffix = subDepartemen.isNotEmpty ? subDepartemen : departemen;
+            final prefix = rawRole.replaceAll('_', ' ').toUpperCase();
+            formattedRole = suffix.isNotEmpty ? '$prefix - $suffix' : prefix;
+          }
+
           _previewNama = data['nama'] as String?;
-          _previewRole = data['role'] as String?;
+          _previewRole = formattedRole;
           _previewError = null;
         }
       } else {
