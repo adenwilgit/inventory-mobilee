@@ -159,9 +159,9 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
             ),
             _buildNavItem(
               index: 2,
-              icon: Icons.swap_vert_outlined,
-              activeIcon: Icons.swap_vertical_circle_rounded,
-              label: 'Mutasi',
+              icon: Icons.assignment_outlined,
+              activeIcon: Icons.assignment_rounded,
+              label: 'Pengajuan Saya',
             ),
             _buildNavItem(
               index: 3,

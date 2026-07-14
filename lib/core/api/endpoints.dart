@@ -20,6 +20,7 @@ class Endpoints {
   // Autentikasi
   static const String login = '/auth/login';
   static const String checkNup = '/auth/check-nup';
+  static const String fcmToken = '/auth/fcm-token';
 
   // Dashboard
   static const String dashboard = '/dashboard';
@@ -55,4 +56,17 @@ class Endpoints {
   static const String updateMyProfile = '/users/profile/me'; // PUT
   static const String changeMyPassword =
       '/users/profile/change-password'; // PUT
+
+  // Laporan
+  static const String laporanStok = '/laporan/stok';
+  static const String laporanMasuk = '/laporan/barang-masuk';
+  static const String laporanKeluar = '/laporan/barang-keluar';
+
+  // Export Laporan
+  static const String exportExcelStok = '/export/excel/stok';
+  static const String exportPdfStok = '/export/pdf/stok';
+  static const String exportExcelMasuk = '/export/excel/barang-masuk';
+  static const String exportPdfMasuk = '/export/pdf/barang-masuk';
+  static const String exportExcelKeluar = '/export/excel/barang-keluar';
+  static const String exportPdfKeluar = '/export/pdf/barang-keluar';
 }

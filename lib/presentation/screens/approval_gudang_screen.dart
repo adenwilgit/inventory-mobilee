@@ -259,7 +259,7 @@ class _ApprovalGudangScreenState extends State<ApprovalGudangScreen>
         emptyMessage = 'Tidak ada pengajuan yang menunggu validasi Anda';
         break;
       default: // staff
-        headerTitle = 'MUTASI PENGAJUAN';
+        headerTitle = 'PENGAJUAN SAYA';
         headerSubtitle = 'Lacak status pengajuan Anda';
         pendingStatus = ''; // not used for staff
         emptyMessage = 'Belum ada pengajuan yang sedang diproses';

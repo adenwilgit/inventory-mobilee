@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "853450367004",
+    "project_id": "notifikasi-inventorypdam",
+    "storage_bucket": "notifikasi-inventorypdam.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:853450367004:android:4207e77e91c896df81ffd9",
+        "android_client_info": {
+          "package_name": "com.example.inventory_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtieWHk50VsembDsUHtpPueZnuXmQy0HQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

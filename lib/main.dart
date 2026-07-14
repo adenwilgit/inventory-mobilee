@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'core/services/notification_service.dart';
 import 'app.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/dashboard_provider.dart';
@@ -18,6 +20,15 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   // Pastikan binding Flutter terinisialisasi
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi Firebase & Layanan Notifikasi Push
+  try {
+    await Firebase.initializeApp();
+    await NotificationService().initialize();
+    debugPrint('🔥 [FIREBASE] Berhasil terinisialisasi');
+  } catch (e) {
+    debugPrint('⚠️ [FIREBASE] Gagal terinisialisasi: $e. Pastikan google-services.json sudah ditambahkan.');
+  }
 
   // Inisialisasi date formatting untuk Bahasa Indonesia
   await initializeDateFormatting('id_ID', null);

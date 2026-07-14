@@ -46,8 +46,12 @@ dependencies:
   # Socket.IO Client for real-time notifications
   socket_io_client: ^2.0.3+1
   permission_handler: ^12.0.3
-  path_provider: ^2.1.6
+  path_provider: ^2.1.5
   gal: ^2.3.2
+  firebase_core: ^2.27.0
+  firebase_messaging: ^14.7.19
+  flutter_local_notifications: ^17.0.0
+  open_filex: ^4.3.2
 
 dev_dependencies:
   flutter_test:
@@ -58,7 +62,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/
     - public/logo-pdam.png
     - public/logo-premium.png
     - .env

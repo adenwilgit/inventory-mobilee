@@ -5,11 +5,17 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <!-- Izin senter opsional saat scan di tempat gelap -->
     <uses-permission android:name="android.permission.FLASHLIGHT"/>
+    <!-- Izin untuk menampilkan notifikasi (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         android:label="Inventaris"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        <!-- Set default FCM channel ID for heads-up notifications -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="high_importance_channel" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

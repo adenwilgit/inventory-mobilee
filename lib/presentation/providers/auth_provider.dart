@@ -3,6 +3,7 @@ import '../../core/api/api_client.dart';
 import '../../core/api/endpoints.dart';
 import '../../core/utils/storage_helper.dart';
 import '../../data/models/user_model.dart';
+import '../../core/services/notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
@@ -187,6 +188,21 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    try {
+      final fcmToken = await NotificationService().getFcmToken();
+      if (fcmToken != null) {
+        debugPrint('📤 [MOBILE] Deleting FCM token from backend: $fcmToken');
+        await _apiClient.delete(
+          Endpoints.fcmToken,
+          data: {
+            'token': fcmToken,
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint('⚠️ [MOBILE] Gagal menghapus token FCM dari backend saat logout: $e');
+    }
+
     await _storage.clearSession();
     _user = null;
     _isAuthenticated = false;
@@ -211,12 +227,34 @@ class AuthProvider extends ChangeNotifier {
             UserModel.fromJson(response.data as Map<String, dynamic>);
         _user = userModel;
         await _storage.saveUser(userModel);
+        
+        // Registrasi Token FCM perangkat ke backend
+        registerFcmToken();
       }
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Registrasi token FCM perangkat ke backend API secara aman
+  Future<void> registerFcmToken() async {
+    try {
+      final fcmToken = await NotificationService().getFcmToken();
+      if (fcmToken != null) {
+        debugPrint('📤 [MOBILE] Registering FCM token to backend: $fcmToken');
+        await _apiClient.post(
+          Endpoints.fcmToken,
+          data: {
+            'token': fcmToken,
+            'device_type': 'android',
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint('⚠️ [MOBILE] Gagal registrasi token FCM ke backend: $e');
     }
   }
 

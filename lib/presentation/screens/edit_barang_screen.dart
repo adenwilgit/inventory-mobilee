@@ -360,7 +360,7 @@ class _EditBarangScreenState extends State<EditBarangScreen> {
                                           child: CircularProgressIndicator())
                                     else
                                       DropdownButtonFormField<KategoriModel>(
-                                        initialValue: _selectedKategori,
+                                        value: _selectedKategori,
                                         items: stokProv.kategoriList
                                             .map((kategori) {
                                           return DropdownMenuItem(
@@ -415,7 +415,7 @@ class _EditBarangScreenState extends State<EditBarangScreen> {
                                           child: CircularProgressIndicator())
                                     else
                                       DropdownButtonFormField<SatuanModel>(
-                                        initialValue: _selectedSatuan,
+                                        value: _selectedSatuan,
                                         items:
                                             stokProv.satuanList.map((satuan) {
                                           return DropdownMenuItem(
