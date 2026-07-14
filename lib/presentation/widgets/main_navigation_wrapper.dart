@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/pengajuan_provider.dart';
+import '../providers/dashboard_provider.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/barang_screen.dart';
 import '../screens/scan_qr_screen.dart';
@@ -339,6 +341,18 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
         setState(() {
           _selectedIndex = index;
         });
+        // Jika user kembali ke tab Beranda, refresh data pengajuan agar status selalu real-time
+        if (index == 0) {
+          final auth = Provider.of<AuthProvider>(context, listen: false);
+          final role = auth.user?.role.toLowerCase() ?? '';
+          final pengajuanProv =
+              Provider.of<PengajuanProvider>(context, listen: false);
+          pengajuanProv.fetchPengajuans();
+          if (role == 'gudang') {
+            Provider.of<DashboardProvider>(context, listen: false)
+                .fetchDashboard();
+          }
+        }
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -8,7 +8,7 @@ import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../widgets/loading_indicator.dart';
 import '../widgets/custom_snackbar.dart';
-import 'package:intl/intl.dart';
+import '../widgets/detail_pengajuan_sheet.dart';
 
 class BuatPengajuanScreen extends StatefulWidget {
   final int? initialBarangId;
@@ -157,22 +157,22 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
     if (!mounted) return;
 
     if (success) {
-      Navigator.pop(context); // Tutup bottom sheet
       if (widget.editPengajuan != null) {
-        Navigator.pop(context); // Tutup screen edit
+        // Mode edit: tutup checkout sheet, lalu pop screen edit dengan result=true
+        final navigator = Navigator.of(context);
+        navigator.pop(); // Tutup checkout sheet
+        Future.microtask(() {
+          navigator.pop(true); // Tutup screen edit + kirim sinyal sukses
+        });
+      } else {
+        // Mode create: backend sudah kirim push notification; cukup tutup sheet
+        Navigator.pop(context);
+        setState(() {
+          _cart.clear();
+          _catatanController.clear();
+          _selectedUrgensi = 'Normal';
+        });
       }
-      CustomSnackBar.show(
-        context: context,
-        message: widget.editPengajuan != null
-            ? 'Pengajuan barang berhasil diubah!'
-            : 'Pengajuan barang berhasil dikirim ke atasan!',
-        type: SnackBarType.success,
-      );
-      setState(() {
-        _cart.clear();
-        _catatanController.clear();
-        _selectedUrgensi = 'Normal';
-      });
     } else {
       CustomSnackBar.show(
         context: context,
@@ -892,113 +892,7 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
     }
   }
 
-  // ── Dialog: Konfirmasi Batalkan Pengajuan ──────────────────────────
-  void _showCancelPengajuanDialog(PengajuanModel p) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: isDark ? TirtaTheme.slate900 : Colors.white,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.warning_rounded,
-                  color: Colors.amber, size: 22),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text('Batalkan Pengajuan?',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Pengajuan yang dibatalkan akan dihapus permanen dari sistem.',
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isDark ? TirtaTheme.slate800 : Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.receipt_long_rounded,
-                      size: 16, color: Colors.grey.shade500),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      p.nomorPengajuan,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Tidak',
-                style: TextStyle(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                    fontWeight: FontWeight.bold)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final prov =
-                  Provider.of<PengajuanProvider>(context, listen: false);
-              final success = await prov.deletePengajuan(p.id);
-              if (!mounted) return;
-              if (success) {
-                CustomSnackBar.show(
-                  context: context,
-                  message: 'Pengajuan berhasil dibatalkan!',
-                  type: SnackBarType.success,
-                );
-              } else {
-                CustomSnackBar.show(
-                  context: context,
-                  message: prov.errorMessage ?? 'Gagal membatalkan pengajuan.',
-                  type: SnackBarType.error,
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Ya, Batalkan',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   bool _isDiproses(String status) {
     return status.toLowerCase().startsWith('pending');
@@ -1096,589 +990,7 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
     );
   }
 
-  // ── Widget: Approval Timeline ──────────────────────────────────────
-  Widget _approvalTimeline(String status, String? rolePengaju) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final isRejected = status.toLowerCase().contains('reject') ||
-        status.toLowerCase().contains('ditolak');
-    final activeStep = _getActiveStep(status, rolePengaju);
-    final steps = _buildSteps(rolePengaju);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? TirtaTheme.slate800 : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-            color: isRejected
-                ? TirtaTheme.rose.withValues(alpha: 0.5)
-                : (isDark
-                    ? TirtaTheme.slate700
-                    : TirtaTheme.slate200.withValues(alpha: 0.5))),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.map_rounded,
-                  size: 16, color: isDark ? Colors.grey : Colors.blueGrey),
-              const SizedBox(width: 8),
-              Text('Peta Persetujuan Digital',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurface)),
-              const Spacer(),
-              if (isRejected)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: TirtaTheme.rose.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text('DITOLAK',
-                      style: TextStyle(
-                          color: TirtaTheme.rose,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 9,
-                          letterSpacing: 0.3)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Column(
-            children: List.generate(steps.length, (index) {
-              final isComplete = index < activeStep;
-              final isActive = !isRejected &&
-                  index == activeStep &&
-                  activeStep < steps.length;
-              final isRejectedStep = isRejected && index == activeStep;
-              final isLastStep = index == steps.length - 1;
-
-              Color dotColor;
-              Color textColor;
-              Widget dotChild;
-
-              if (isRejectedStep) {
-                dotColor = TirtaTheme.rose;
-                textColor = TirtaTheme.rose;
-                dotChild = const Icon(Icons.close_rounded,
-                    size: 10, color: Colors.white);
-              } else if (isComplete) {
-                dotColor = TirtaTheme.green;
-                textColor = TirtaTheme.green;
-                dotChild = const Icon(Icons.check_rounded,
-                    size: 10, color: Colors.white);
-              } else if (isActive) {
-                dotColor =
-                    isLastStep ? TirtaTheme.primaryBlue : TirtaTheme.orange;
-                textColor =
-                    isLastStep ? TirtaTheme.primaryBlue : TirtaTheme.orange;
-                dotChild = TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 1.0, end: 0.3),
-                  duration: const Duration(milliseconds: 700),
-                  builder: (context, value, child) => Opacity(
-                    opacity: value,
-                    child: child,
-                  ),
-                  child:
-                      const Icon(Icons.circle, size: 10, color: Colors.white),
-                );
-              } else {
-                dotColor = isDark ? TirtaTheme.slate700 : Colors.grey.shade300;
-                textColor =
-                    isDark ? Colors.grey.shade500 : Colors.grey.shade600;
-                dotChild =
-                    const Icon(Icons.circle, size: 10, color: Colors.white);
-              }
-
-              String statusLabelStep;
-              Color statusLabelColor;
-
-              if (isRejectedStep) {
-                statusLabelStep = 'Ditolak';
-                statusLabelColor = TirtaTheme.rose;
-              } else if (isComplete) {
-                statusLabelStep = 'Selesai';
-                statusLabelColor = TirtaTheme.green;
-              } else if (isActive) {
-                statusLabelStep =
-                    isLastStep ? 'Menunggu Gudang' : 'Sedang diproses';
-                statusLabelColor =
-                    isLastStep ? TirtaTheme.primaryBlue : TirtaTheme.orange;
-              } else {
-                statusLabelStep = 'Menunggu';
-                statusLabelColor =
-                    isDark ? Colors.grey.shade600 : Colors.grey.shade500;
-              }
-
-              return Padding(
-                padding: EdgeInsets.only(bottom: isLastStep ? 0 : 14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      children: [
-                        Container(
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: dotColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(child: dotChild),
-                        ),
-                        if (!isLastStep)
-                          Container(
-                            width: 2,
-                            height: 40,
-                            margin: const EdgeInsets.only(top: 4),
-                            color: isDark
-                                ? TirtaTheme.slate700
-                                : Colors.grey.shade300,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(steps[index],
-                              style: TextStyle(
-                                  fontWeight:
-                                      isComplete || isActive || isRejectedStep
-                                          ? FontWeight.w800
-                                          : FontWeight.w600,
-                                  fontSize: 13,
-                                  color:
-                                      isComplete || isActive || isRejectedStep
-                                          ? textColor
-                                          : (isDark
-                                              ? Colors.grey.shade400
-                                              : Colors.grey.shade700))),
-                          const SizedBox(height: 4),
-                          Text(
-                            statusLabelStep,
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: statusLabelColor,
-                                fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<String> _buildSteps(String? rolePengaju) {
-    final role = (rolePengaju ?? '').toLowerCase();
-    if (role.contains('manager') && !role.contains('asisten')) {
-      return ['Pengajuan', 'Gudang'];
-    } else if (role.contains('asisten')) {
-      return ['Pengajuan', 'Manager', 'Gudang'];
-    }
-    return ['Pengajuan', 'Asisten Manager', 'Manager', 'Gudang'];
-  }
-
-  int _getActiveStep(String status, String? rolePengaju) {
-    final s = status.toLowerCase();
-    final steps = _buildSteps(rolePengaju);
-    final isRejected = s.contains('reject') || s.contains('ditolak');
-
-    final gudangIdx = steps.length - 1;
-
-    if (s.contains('selesai') || s.contains('approved_gudang')) {
-      return steps.length;
-    }
-
-    if (s.contains('pending_gudang')) {
-      return gudangIdx;
-    }
-
-    if (s.contains('pending_manager')) {
-      final idx = steps.indexWhere((e) =>
-          e.toLowerCase().contains('manager') &&
-          !e.toLowerCase().contains('asisten'));
-      return idx >= 0 ? idx : gudangIdx - 1;
-    }
-
-    if (s.contains('pending_asisten')) {
-      final idx = steps.indexWhere((e) => e.toLowerCase().contains('asisten'));
-      return idx >= 0 ? idx : 1;
-    }
-
-    if (isRejected) {
-      return gudangIdx;
-    }
-
-    return 1;
-  }
-
-  // ── Fungsi: Tampilkan Detail Pengajuan di Bottom Sheet ─────────────
-  void _showDetailBottomSheet(PengajuanModel p) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final statusColor = _statusColor(p.status);
-    final statusLabel = _statusLabel(p.status);
-    final authProv = Provider.of<AuthProvider>(context, listen: false);
-    final userRole = authProv.user?.role.toLowerCase() ?? '';
-    final isOwner = authProv.user != null && authProv.user!.id == p.userId;
-    // canManage: owner dan status masih pending sesuai role
-    final bool canManage = isOwner &&
-        (p.status == 'pending_asisten_manager' ||
-            (userRole == 'asisten_manager' && p.status == 'pending_manager') ||
-            (userRole == 'manager' && p.status == 'pending_gudang'));
-    String dateStr = '';
-    try {
-      final dt = DateTime.parse(p.tanggalPengajuan);
-      dateStr = DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(dt.toLocal());
-    } catch (_) {
-      dateStr = p.tanggalPengajuan;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(ctx).size.height * 0.9,
-          ),
-          decoration: BoxDecoration(
-            color: isDark ? TirtaTheme.slate900 : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 24,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              const SizedBox(height: 10),
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Detail Pengajuan',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 16,
-                                color: theme.colorScheme.onSurface),
-                          ),
-                          Text(
-                            p.nomorPengajuan,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.5),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close_rounded),
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Divider(
-                  height: 1,
-                  color: isDark ? TirtaTheme.slate800 : TirtaTheme.slate100),
-              const SizedBox(height: 4),
-              // Scrollable content
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Info pengajuan
-                      Row(
-                        children: [
-                          // Status badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              statusLabel,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: statusColor,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _urgensiChip(p.urgensi),
-                          const Spacer(),
-                          Row(
-                            children: [
-                              Icon(Icons.calendar_today_rounded,
-                                  size: 12,
-                                  color: isDark
-                                      ? TirtaTheme.slate500
-                                      : Colors.grey.shade500),
-                              const SizedBox(width: 4),
-                              Text(
-                                dateStr,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isDark
-                                      ? TirtaTheme.slate500
-                                      : Colors.grey.shade500,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      if (p.catatan != null && p.catatan!.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          'Catatan',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.45),
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? TirtaTheme.slate800
-                                : TirtaTheme.slate50,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                color: isDark
-                                    ? TirtaTheme.slate700
-                                    : TirtaTheme.slate200
-                                        .withValues(alpha: 0.5)),
-                          ),
-                          child: Text(
-                            p.catatan!,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: theme.colorScheme.onSurface),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      // Daftar barang
-                      Text(
-                        'Daftar Barang',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.45),
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ...p.items.map((item) {
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: theme.cardColor,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                                color: isDark
-                                    ? TirtaTheme.slate800
-                                    : TirtaTheme.slate200
-                                        .withValues(alpha: 0.5)),
-                          ),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: _buildPhoto(item.foto, 52, 52, theme),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.namaBarang,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 13),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      item.kodeBarang,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: theme.colorScheme.onSurface
-                                            .withValues(alpha: 0.5),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: TirtaTheme.primaryBlue
-                                      .withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  '${item.jumlah} ${item.satuan}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 12,
-                                      color: TirtaTheme.primaryBlue),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 20),
-                      // Approval timeline
-                      _approvalTimeline(p.status, p.rolePengaju),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
-              ),
-              // ── Action Buttons: Ubah & Batalkan (pinned di bawah)
-              if (canManage)
-                Container(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    12,
-                    20,
-                    MediaQuery.of(ctx).padding.bottom + 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    border: Border(
-                      top: BorderSide(
-                        color:
-                            isDark ? TirtaTheme.slate700 : Colors.grey.shade200,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _showCancelPengajuanDialog(p);
-                          },
-                          icon: const Icon(Icons.delete_forever_rounded,
-                              size: 16),
-                          label: const Text('Batalkan'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side:
-                                const BorderSide(color: Colors.red, width: 1.5),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16)),
-                            textStyle: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 14),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    BuatPengajuanScreen(editPengajuan: p),
-                              ),
-                            ).then((_) {
-                              // Refresh list after editing
-                              if (mounted) {
-                                Provider.of<PengajuanProvider>(context,
-                                        listen: false)
-                                    .fetchPengajuans();
-                              }
-                            });
-                          },
-                          icon: const Icon(Icons.edit_rounded, size: 18),
-                          label: const Text('Ubah'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: TirtaTheme.skyBlue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16)),
-                            elevation: 0,
-                            textStyle: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 14),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   // ── Widget: Tab Toggle (Asmen only) ─────────────────────────────
   Widget _buildTabToggle(ThemeData theme, bool isDark) {
@@ -1881,14 +1193,7 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
         final p = filtered[i];
         final statusColor = _statusColor(p.status);
         final statusLabel = _statusLabel(p.status);
-        String dateStr = '';
-        try {
-          final dt = DateTime.parse(p.tanggalPengajuan);
-          dateStr =
-              DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(dt.toLocal());
-        } catch (_) {
-          dateStr = p.tanggalPengajuan;
-        }
+
 
         return Container(
           decoration: BoxDecoration(
@@ -1913,7 +1218,7 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
             child: InkWell(
               borderRadius: BorderRadius.circular(18),
               onTap: () {
-                _showDetailBottomSheet(p);
+                DetailPengajuanSheet.show(context, p);
               },
               child: Padding(
                 padding: const EdgeInsets.all(14),
@@ -1971,29 +1276,27 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
                           const SizedBox(height: 5),
                           Row(
                             children: [
-                              if (p.urgensi != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        _getUrgensiColor(p.urgensi).withValues(
-                                      alpha: 0.12,
-                                    ),
-                                    borderRadius: BorderRadius.circular(6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color:
+                                      _getUrgensiColor(p.urgensi).withValues(
+                                    alpha: 0.12,
                                   ),
-                                  child: Text(
-                                    p.urgensi.toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w900,
-                                      color: _getUrgensiColor(p.urgensi),
-                                    ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  p.urgensi.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    color: _getUrgensiColor(p.urgensi),
                                   ),
                                 ),
-                              if (p.urgensi != null && p.items.isNotEmpty)
+                              ),
+                              if (p.items.isNotEmpty) ...[
                                 const SizedBox(width: 6),
-                              if (p.items.isNotEmpty)
                                 Text(
                                   '${p.items.length} barang',
                                   style: TextStyle(
@@ -2003,6 +1306,7 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
                                         .withValues(alpha: 0.4),
                                   ),
                                 ),
+                              ],
                             ],
                           ),
                         ],
@@ -2041,36 +1345,7 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
     return TirtaTheme.primaryBlue;
   }
 
-  Widget _urgensiChip(String urgensi) {
-    Color color;
-    switch (urgensi.toLowerCase()) {
-      case 'darurat':
-        color = TirtaTheme.rose;
-        break;
-      case 'penting':
-        color = TirtaTheme.orange;
-        break;
-      default:
-        color = TirtaTheme.primaryBlue;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        urgensi.toUpperCase(),
-        style: TextStyle(
-          fontSize: 8,
-          fontWeight: FontWeight.w900,
-          color: color,
-          letterSpacing: 0.3,
-        ),
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {

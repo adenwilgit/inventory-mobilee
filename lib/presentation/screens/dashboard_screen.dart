@@ -12,6 +12,7 @@ import '../providers/theme_provider.dart';
 import '../widgets/loading_indicator.dart';
 
 import 'profile_screen.dart';
+import '../widgets/detail_pengajuan_sheet.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -1038,8 +1039,12 @@ class _ListItemCard extends StatelessWidget {
     final statusColor = _getStatusColor(item.status as String?);
     final statusLabel = _getStatusLabel(item.status as String?);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+    return GestureDetector(
+      onTap: () {
+        DetailPengajuanSheet.show(context, item);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: cardTheme.cardColor,
@@ -1172,7 +1177,7 @@ class _ListItemCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),);
   }
 
   Color _getStatusColor(String? status) {
