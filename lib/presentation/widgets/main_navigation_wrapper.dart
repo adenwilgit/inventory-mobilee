@@ -159,9 +159,9 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
             ),
             _buildNavItem(
               index: 2,
-              icon: Icons.swap_vert_outlined,
-              activeIcon: Icons.swap_vertical_circle_rounded,
-              label: 'Mutasi',
+              icon: Icons.history_outlined,
+              activeIcon: Icons.history_rounded,
+              label: 'Pengajuan Saya',
             ),
             _buildNavItem(
               index: 3,
@@ -334,35 +334,44 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   }) {
     final isSelected = _selectedIndex == index;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = isSelected
+        ? (isDark ? TirtaTheme.skyBlue : TirtaTheme.primaryBlue)
+        : TirtaTheme.slate500;
+
     return GestureDetector(
       onTap: () {
         setState(() {
           _selectedIndex = index;
         });
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isSelected ? activeIcon : icon,
-            color: isSelected
-                ? (isDark ? TirtaTheme.skyBlue : TirtaTheme.primaryBlue)
-                : TirtaTheme.slate500,
-            size: 26,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              color: isSelected
-                  ? (isDark ? TirtaTheme.skyBlue : TirtaTheme.primaryBlue)
-                  : TirtaTheme.slate500,
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2.0,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 70,
+        height: 58,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: labelColor,
+              size: 26,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              label.toUpperCase(),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.visible,
+              style: TextStyle(
+                color: labelColor,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.0,
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

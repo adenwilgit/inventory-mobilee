@@ -9,6 +9,7 @@ import '../providers/notifikasi_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/loading_indicator.dart';
 import '../widgets/custom_snackbar.dart';
+import 'buat_pengajuan_screen.dart';
 
 class ApprovalGudangScreen extends StatefulWidget {
   const ApprovalGudangScreen({super.key});
@@ -259,7 +260,7 @@ class _ApprovalGudangScreenState extends State<ApprovalGudangScreen>
         emptyMessage = 'Tidak ada pengajuan yang menunggu validasi Anda';
         break;
       default: // staff
-        headerTitle = 'MUTASI PENGAJUAN';
+        headerTitle = 'PENGAJUAN SAYA';
         headerSubtitle = 'Lacak status pengajuan Anda';
         pendingStatus = ''; // not used for staff
         emptyMessage = 'Belum ada pengajuan yang sedang diproses';
@@ -285,12 +286,13 @@ class _ApprovalGudangScreenState extends State<ApprovalGudangScreen>
           .toList();
     } else {
       // Approver roles (gudang, asisten_manager, manager)
-      pendingPengajuan = pengajuanProv.pengajuans
-          .where((p) => p.status == pendingStatus)
-          .toList();
-      historyPengajuan = pengajuanProv.pengajuans
-          .where((p) => p.status != pendingStatus)
-          .toList();
+      // Exclude their own requests (p.userId != userId) from validation list
+      final othersPengajuans =
+          pengajuanProv.pengajuans.where((p) => p.userId != userId).toList();
+      pendingPengajuan =
+          othersPengajuans.where((p) => p.status == pendingStatus).toList();
+      historyPengajuan =
+          othersPengajuans.where((p) => p.status != pendingStatus).toList();
     }
 
     if (_searchQuery.isNotEmpty) {
@@ -1352,6 +1354,42 @@ class _DetailModalContentState extends State<_DetailModalContent> {
     }
   }
 
+  void _showCancelConfirmation(BuildContext context, PengajuanModel p) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _ConfirmDialog(
+        title: 'Batalkan Pengajuan?',
+        message: 'Pengajuan yang dibatalkan akan dihapus permanen dari sistem.',
+        nomorPengajuan: p.nomorPengajuan,
+        confirmLabel: 'Ya, Batalkan',
+        confirmColor: Colors.red,
+        icon: Icons.warning_rounded,
+        iconColor: Colors.amber,
+      ),
+    ).then((confirmed) async {
+      if (confirmed == true) {
+        if (!context.mounted) return;
+        final prov = Provider.of<PengajuanProvider>(context, listen: false);
+        final success = await prov.deletePengajuan(p.id);
+        if (!context.mounted) return;
+        if (success) {
+          Navigator.pop(context); // Tutup detail modal
+          CustomSnackBar.show(
+            context: context,
+            message: 'Pengajuan berhasil dibatalkan!',
+            type: SnackBarType.success,
+          );
+        } else {
+          CustomSnackBar.show(
+            context: context,
+            message: prov.errorMessage ?? 'Gagal membatalkan pengajuan.',
+            type: SnackBarType.error,
+          );
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1377,6 +1415,11 @@ class _DetailModalContentState extends State<_DetailModalContent> {
         break;
     }
     final isPending = canAct && p.status == rolePendingStatus;
+    final isOwner = authProv.user != null && authProv.user!.id == p.userId;
+    final bool canManage = isOwner &&
+        (p.status == 'pending_asisten_manager' ||
+            (userRole == 'asisten_manager' && p.status == 'pending_manager') ||
+            (userRole == 'manager' && p.status == 'pending_gudang'));
 
     return Container(
       decoration: BoxDecoration(
@@ -1436,7 +1479,7 @@ class _DetailModalContentState extends State<_DetailModalContent> {
                           20,
                           16,
                           20,
-                          isPending
+                          (isPending || canManage)
                               ? 8
                               : (MediaQuery.of(context).padding.bottom + 16),
                         ),
@@ -1675,6 +1718,74 @@ class _DetailModalContentState extends State<_DetailModalContent> {
                     ],
                   );
                 },
+              ),
+            ),
+          // ── Action Buttons for Owner (pinned di bawah, di luar scroll)
+          if (canManage)
+            Container(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                MediaQuery.of(context).padding.bottom + 16,
+              ),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark ? TirtaTheme.slate700 : Colors.grey.shade200,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        _showCancelConfirmation(context, p);
+                      },
+                      icon: const Icon(Icons.delete_forever_rounded, size: 16),
+                      label: const Text('Batalkan'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        textStyle: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                BuatPengajuanScreen(editPengajuan: p),
+                          ),
+                        ).then((_) {
+                          _fetchDetail();
+                        });
+                      },
+                      icon: const Icon(Icons.edit_rounded, size: 18),
+                      label: const Text('Ubah'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: TirtaTheme.skyBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                        textStyle: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
         ],
