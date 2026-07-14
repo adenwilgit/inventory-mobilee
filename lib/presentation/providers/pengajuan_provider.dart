@@ -213,4 +213,68 @@ class PengajuanProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // Mengubah data pengajuan yang sudah ada (Staff, Asmen, Manager)
+  Future<bool> updatePengajuan({
+    required int id,
+    required List<Map<String, dynamic>> items,
+    required String catatan,
+    required String urgensi,
+  }) async {
+    if (_authProvider == null || _authProvider!.user == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.put(
+        '${Endpoints.pengajuan}/$id',
+        data: {
+          'urgensi': urgensi.toLowerCase(),
+          'catatan': catatan,
+          'items': items,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        await fetchPengajuans();
+        if (_selectedPengajuan?.id == id) {
+          await fetchPengajuanById(id);
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Menghapus/Membatalkan pengajuan
+  Future<bool> deletePengajuan(int id) async {
+    if (_authProvider == null || _authProvider!.user == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.delete('${Endpoints.pengajuan}/$id');
+      if (response.statusCode == 200) {
+        await fetchPengajuans();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

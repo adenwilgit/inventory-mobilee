@@ -12,7 +12,8 @@ import 'package:intl/intl.dart';
 
 class BuatPengajuanScreen extends StatefulWidget {
   final int? initialBarangId;
-  const BuatPengajuanScreen({super.key, this.initialBarangId});
+  final PengajuanModel? editPengajuan;
+  const BuatPengajuanScreen({super.key, this.initialBarangId, this.editPengajuan});
 
   @override
   State<BuatPengajuanScreen> createState() => _BuatPengajuanScreenState();
@@ -35,28 +36,40 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.editPengajuan != null) {
+      _catatanController.text = widget.editPengajuan!.catatan ?? '';
+      final urg = widget.editPengajuan!.urgensi;
+      if (urg.isNotEmpty) {
+        _selectedUrgensi = urg[0].toUpperCase() + urg.substring(1).toLowerCase();
+      }
+      for (final item in widget.editPengajuan!.items) {
+        _cart[item.barangId] = item.jumlah;
+      }
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Capture route arguments synchronously before any async operation
       final routeArgs = ModalRoute.of(context)?.settings.arguments;
       final stokProv = Provider.of<StokProvider>(context, listen: false);
       stokProv.fetchBarangList().then((_) {
-        int? startId = widget.initialBarangId;
-        if (startId == null) {
-          if (routeArgs is int) {
-            startId = routeArgs;
-          }
-        }
-        if (startId != null) {
-          try {
-            final barang =
-                stokProv.barangList.firstWhere((b) => b.id == startId);
-            if (barang.stokTersedia > 0) {
-              setState(() {
-                _cart[startId!] = 1;
-              });
+        if (widget.editPengajuan == null) {
+          int? startId = widget.initialBarangId;
+          if (startId == null) {
+            if (routeArgs is int) {
+              startId = routeArgs;
             }
-          } catch (e) {
-            debugPrint('Item with ID $startId not found in list: $e');
+          }
+          if (startId != null) {
+            try {
+              final barang =
+                  stokProv.barangList.firstWhere((b) => b.id == startId);
+              if (barang.stokTersedia > 0) {
+                setState(() {
+                  _cart[startId!] = 1;
+                });
+              }
+            } catch (e) {
+              debugPrint('Item with ID $startId not found in list: $e');
+            }
           }
         }
       });
@@ -125,19 +138,34 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
       };
     }).toList();
 
-    final success = await pengajuanProv.createPengajuan(
-      items: itemsPayload,
-      catatan: _catatanController.text.trim(),
-      urgensi: _selectedUrgensi,
-    );
+    final bool success;
+    if (widget.editPengajuan != null) {
+      success = await pengajuanProv.updatePengajuan(
+        id: widget.editPengajuan!.id,
+        items: itemsPayload,
+        catatan: _catatanController.text.trim(),
+        urgensi: _selectedUrgensi,
+      );
+    } else {
+      success = await pengajuanProv.createPengajuan(
+        items: itemsPayload,
+        catatan: _catatanController.text.trim(),
+        urgensi: _selectedUrgensi,
+      );
+    }
 
     if (!mounted) return;
 
     if (success) {
       Navigator.pop(context); // Tutup bottom sheet
+      if (widget.editPengajuan != null) {
+        Navigator.pop(context); // Tutup screen edit
+      }
       CustomSnackBar.show(
         context: context,
-        message: 'Pengajuan barang berhasil dikirim ke atasan!',
+        message: widget.editPengajuan != null
+            ? 'Pengajuan barang berhasil diubah!'
+            : 'Pengajuan barang berhasil dikirim ke atasan!',
         type: SnackBarType.success,
       );
       setState(() {
@@ -864,6 +892,114 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
     }
   }
 
+  // ── Dialog: Konfirmasi Batalkan Pengajuan ──────────────────────────
+  void _showCancelPengajuanDialog(PengajuanModel p) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isDark ? TirtaTheme.slate900 : Colors.white,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.warning_rounded,
+                  color: Colors.amber, size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text('Batalkan Pengajuan?',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Pengajuan yang dibatalkan akan dihapus permanen dari sistem.',
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isDark ? TirtaTheme.slate800 : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.receipt_long_rounded,
+                      size: 16, color: Colors.grey.shade500),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      p.nomorPengajuan,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Tidak',
+                style: TextStyle(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final prov =
+                  Provider.of<PengajuanProvider>(context, listen: false);
+              final success = await prov.deletePengajuan(p.id);
+              if (!mounted) return;
+              if (success) {
+                CustomSnackBar.show(
+                  context: context,
+                  message: 'Pengajuan berhasil dibatalkan!',
+                  type: SnackBarType.success,
+                );
+              } else {
+                CustomSnackBar.show(
+                  context: context,
+                  message: prov.errorMessage ?? 'Gagal membatalkan pengajuan.',
+                  type: SnackBarType.error,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Ya, Batalkan',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   bool _isDiproses(String status) {
     return status.toLowerCase().startsWith('pending');
   }
@@ -1195,6 +1331,14 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final statusColor = _statusColor(p.status);
     final statusLabel = _statusLabel(p.status);
+    final authProv = Provider.of<AuthProvider>(context, listen: false);
+    final userRole = authProv.user?.role.toLowerCase() ?? '';
+    final isOwner = authProv.user != null && authProv.user!.id == p.userId;
+    // canManage: owner dan status masih pending sesuai role
+    final bool canManage = isOwner &&
+        (p.status == 'pending_asisten_manager' ||
+            (userRole == 'asisten_manager' && p.status == 'pending_manager') ||
+            (userRole == 'manager' && p.status == 'pending_gudang'));
     String dateStr = '';
     try {
       final dt = DateTime.parse(p.tanggalPengajuan);
@@ -1451,6 +1595,84 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
                   ),
                 ),
               ),
+              // ── Action Buttons: Ubah & Batalkan (pinned di bawah)
+              if (canManage)
+                Container(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    12,
+                    20,
+                    MediaQuery.of(ctx).padding.bottom + 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    border: Border(
+                      top: BorderSide(
+                        color:
+                            isDark ? TirtaTheme.slate700 : Colors.grey.shade200,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showCancelPengajuanDialog(p);
+                          },
+                          icon: const Icon(Icons.delete_forever_rounded,
+                              size: 16),
+                          label: const Text('Batalkan'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side:
+                                const BorderSide(color: Colors.red, width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            textStyle: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    BuatPengajuanScreen(editPengajuan: p),
+                              ),
+                            ).then((_) {
+                              // Refresh list after editing
+                              if (mounted) {
+                                Provider.of<PengajuanProvider>(context,
+                                        listen: false)
+                                    .fetchPengajuans();
+                              }
+                            });
+                          },
+                          icon: const Icon(Icons.edit_rounded, size: 18),
+                          label: const Text('Ubah'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: TirtaTheme.skyBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
+                            textStyle: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         );
@@ -1938,9 +2160,11 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'AJUKAN BARANG',
-                        style: TextStyle(
+                      Text(
+                        widget.editPengajuan != null
+                            ? 'UBAH PENGAJUAN'
+                            : 'AJUKAN BARANG',
+                        style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
@@ -1948,11 +2172,13 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
                         ),
                       ),
                       Text(
-                        isAsmen
-                            ? (_asmenShowForm
-                                ? 'Pilih barang dari katalog'
-                                : 'Riwayat pengajuan Anda')
-                            : 'Pilih barang kebutuhan Anda',
+                        widget.editPengajuan != null
+                            ? 'Ubah barang atau kuantitas pengajuan'
+                            : (isAsmen
+                                ? (_asmenShowForm
+                                    ? 'Pilih barang dari katalog'
+                                    : 'Riwayat pengajuan Anda')
+                                : 'Pilih barang kebutuhan Anda'),
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.white.withValues(alpha: 0.7),
@@ -1966,13 +2192,13 @@ class _BuatPengajuanScreenState extends State<BuatPengajuanScreen> {
             ),
           ),
 
-          // ── Tab Toggle (Asmen only) ────────────────────────────
-          if (isAsmen) _buildTabToggle(theme, isDark),
+          // ── Tab Toggle (Asmen only, hide in edit mode) ──────────
+          if (isAsmen && widget.editPengajuan == null) _buildTabToggle(theme, isDark),
 
           // ─────────────────────────────────────────────────────
           // KONTEN: Form Katalog  OR  Pengajuan Saya
           // ─────────────────────────────────────────────────────
-          if (!isAsmen || _asmenShowForm) ...[
+          if (widget.editPengajuan != null || !isAsmen || _asmenShowForm) ...[
             // Search & Filters Header
             Container(
               padding: const EdgeInsets.all(16),
